@@ -1,0 +1,10 @@
+yse_jumper.settings:
+  type: config_object
+  label: 'YSE Jumper settings'
+  mapping:
+    bundle_paths:
+      type: sequence
+      label: 'Content types for paragraphs parent node path lookup'
+      sequence:
+        type: string
+        label: 'Paragraph bundle'

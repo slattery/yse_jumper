@@ -1,0 +1,6 @@
+{
+  "name": "slattery/yse_jumper",
+  "description": "Support jump nav for paragraphs",
+  "type": "drupal-custom-module",
+  "license": "GPL-2.0-or-later"
+}

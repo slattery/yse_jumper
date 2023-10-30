@@ -1,0 +1,213 @@
+<?php
+
+use Drupal\Core\Render\BubbleableMetadata;
+use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\Component\Utility\Html;
+
+/**
+ * Implements hook_help().
+ */
+function yse_jumper_help($route_name, RouteMatchInterface $route_match) {
+  if ($route_name == 'help.page.yse_jumper') {
+    $text = file_get_contents(__DIR__ . '/README.md');
+    if (!Drupal::moduleHandler()->moduleExists('markdown')) {
+      return '<pre>' . $text . '</pre>';
+    }
+    else {
+      /** @var \Drupal\markdown\PluginManager\ParserManagerInterface $parser_manager */
+      $parser_manager = \Drupal::service('plugin.manager.markdown.parser');
+      $parser = $parser_manager->getDefaultParser([
+        'render_strategy' => ['type' => 'none'],
+      ]);
+      return $parser->parse($text);
+    }
+  }
+  return NULL;
+}
+
+
+function yse_jumper_preprocess_paragraph(&$variables) {
+  /** @var \Drupal\paragraphs\Entity\Paragraph $paragraph */
+  $paragraph = $variables['paragraph'];
+  $para_uuid = $paragraph->uuid();
+  $hex_array = explode("-", $para_uuid);
+  $hex_group = reset($hex_array);
+  $hex_jumpr = 'jump_' . $hex_group;
+  $str_jumpr = null;
+  if ($paragraph->hasField('field_jump_nav_heading')){
+    $str_jumpr = $paragraph->get('field_jump_nav_heading')->value;
+  }
+  if (empty($str_jumpr)){
+    $domid = $hex_jumpr;
+  } else {
+    $domid = Html::getId($str_jumpr);
+  }
+  if(empty($variables['attributes']['id'])) {
+     // Add variables here
+    $variables['attributes']['id'] = $domid;
+  }
+  if(!empty($str_jumpr) && empty($variables['attributes']['data-jump-nav-heading'])) {
+    $variables['attributes']['data-jump-nav-heading'] = Html::getClass($str_jumpr);
+  }
+}
+
+
+/**
+ * Implements hook_token_info().
+ */
+function yse_jumper_token_info() {
+
+  $types['jumper'] = array(
+    'name' => t('Jumper'),
+    'description' => t('Tokens for jumpnav anchors from entity UUID.'),
+    'needs-data' => 'user',
+  );
+  
+  $tokens['jumper']['hex'] = array(
+    'name' => t('Hex Group'),
+    'description' => t('First group of hex from UUID.'),
+  );
+
+  $tokens['jumper']['slug'] = array(
+    'name' => t('Slug'),
+    'description' => t('Slugified value from jumplink field.'),
+  );
+  
+  $tokens['jumper']['anchor'] = array(
+    'name' => t('Anchor'),
+    'description' => t('Anchor for placement using DOM element id'),
+  );
+
+  $tokens['jumper']['nodepath'] = array(
+    'name' => t('Parent Node Path'),
+    'description' => t('Config specific upwards recursion to canonical node path'),
+  );
+
+  $tokens['jumper']['libitempath'] = array(
+    'name' => t('Parent Library Item path'),
+    'description' => t('Recursion to canonical paragraphs library item path'),
+  );
+  
+  $tokens['paragraph']['jumper'] = array(
+    'name' => t('Paragraph Jumper'),
+    'description' => t('Jump Anchor for Paragraph.'),
+    'type' => 'jumper',
+  );
+    
+  return array(
+    'types' => $types,
+    'tokens' => $tokens,
+  );
+}
+
+/**
+ * Implements hook_tokens().
+ */
+function yse_jumper_tokens($type, array $tokens, array $data, array $options, BubbleableMetadata $bubbleable_metadata) {
+  $token_service = \Drupal::token();
+  $replacements = [];
+
+  if ($type == 'jumper' && !empty($data['paragraph'])) {
+    
+    $paragraph = $data['paragraph'];
+    $paracfobj = \Drupal::config('yse_jumper.settings');
+    $parapaths = $paracfobj->get('bundle_paths');
+    $para_type = $paragraph->bundle();
+    $para_uuid = $paragraph->uuid();
+    $hex_array = explode("-", $para_uuid);
+    $hex_group = reset($hex_array);
+    $hex_jumpr = 'jump_' . $hex_group;
+    $str_jumpr = null;
+    if ($paragraph->hasField('field_jump_nav_heading')){
+      $str_jumpr = $paragraph->get('field_jump_nav_heading')->value;
+    }
+    if (empty($str_jumpr)){
+      $slugr = null;
+      $domid = $hex_jumpr;
+    } else {
+      $slugr = Html::getId($str_jumpr);
+      $domid = $slugr;
+    }
+    $anchor = '#'. $domid;
+
+    foreach ($tokens as $name => $original) {
+      switch ($name) {
+        case 'hex':
+          if ($hex_group && !empty($hex_group)) {
+            $replacements[$original] = $hex_group;
+          }
+          break;
+        case 'slug':
+          if ($slugr && !empty($slugr)) {
+            $replacements[$original] = $slugr;
+          }
+          break;
+        case 'anchor':
+          if ($anchor && !empty($anchor)) {
+            $replacements[$original] = $anchor;
+          }
+          break;
+        case 'nodepath':
+          if (in_array($para_type, $parapaths)){
+            $home_node = _yse_jumper_get_parentnode_path($paragraph);
+            if (!empty($home_node)){
+              $replacements[$original] = $home_node;
+            }
+          }
+          break;
+        case 'libitempath':
+          //if ($para_type == 'from_library'){
+          if (in_array($para_type, $parapaths)){
+            $home_node = _yse_jumper_get_library_path($paragraph);
+            if (!empty($home_node)){
+              $replacements[$original] = $home_node;
+            }
+          }
+          break;
+      }
+    }
+  }
+
+  if ($type == 'paragraph' && !empty($data['paragraph'])) {
+    if ($jumpr_tokens = $token_service->findWithPrefix($tokens, 'jumper')) {
+      $replacements += $token_service->generate(
+        'jumper', 
+        $jumpr_tokens, 
+        ['paragraph' => $data['paragraph']], 
+        $options,
+        $bubbleable_metadata
+      );
+    }
+  }
+
+  return $replacements;
+
+}
+
+function _yse_jumper_get_parentnode_path($entity){
+  // Test for node type as well
+  if ($entity instanceof \Drupal\node\Entity\Node and in_array($entity->bundle(), ['yse_landing_general','yse_documentation_page'])) return $entity->toUrl()->toString();
+  // If our para is in a library or library-like node which is a ref stored in a paragraph, leapfrog and climb
+  // config here would be to save on processing as opposed to checking every node that is not in the target set.
+  // used like in_array($entity->bundle(), ['yse_feature_store'])
+  if ($entity instanceof \Drupal\node\Entity\Node and !empty($entity->_referringItem) and !empty($entity->_referringItem->getEntity())) return _get_parentnode_path($entity->_referringItem->getEntity());
+  // I thought that maybe LibraryItems would have been smarter...
+  if ($entity instanceof Drupal\paragraphs_library\Entity\LibraryItem and !empty($entity->_referringItem) and !empty($entity->_referringItem->getEntity())) return _get_parentnode_path($entity->_referringItem->getEntity());
+  // If still a paragraph, climb
+  if ($entity instanceof \Drupal\paragraphs\Entity\Paragraph) return _get_parentnode_path($entity->getParentEntity());
+  // Otherwise, this is an entity we didn't want.
+  return null;
+}
+
+function _yse_jumper_get_library_path($entity){
+  // Test for node type as well
+  if ($entity instanceof Drupal\paragraphs_library\Entity\LibraryItem) return $entity->toUrl()->toString();
+  // If our para is in a stored panel and has a parent, climb
+  //if ($entity instanceof \Drupal\node\Entity\Node and in_array($entity->bundle(), ['yse_feature_store'])){
+  if ($entity instanceof \Drupal\node\Entity\Node and !empty($entity->_referringItem) and !empty($entity->_referringItem->getEntity())) return _get_library_path($entity->_referringItem->getEntity());
+  // If still a paragraph, climb
+  if ($entity instanceof \Drupal\paragraphs\Entity\Paragraph) return _get_library_path($entity->getParentEntity());
+  // Otherwise, this is an entity we didn't want.
+  return null;
+}
+
