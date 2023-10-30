@@ -1,2 +1,8 @@
-bundle_paths:
- - from_library
+jump_field_paths_only: true
+parabundle_toggle: true
+selected_parabundles:
+  - from_library
+selected_nodebundles:
+  - yse_landing_general
+  - yse_documentation_page
+  - yse_feature_store

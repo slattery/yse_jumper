@@ -111,7 +111,7 @@ function yse_jumper_tokens($type, array $tokens, array $data, array $options, Bu
     
     $paragraph = $data['paragraph'];
     $paracfobj = \Drupal::config('yse_jumper.settings');
-    $parapaths = $paracfobj->get('bundle_paths');
+    $needjumpr = $paracfobj->get('jump_field_paths_only');
     $para_type = $paragraph->bundle();
     $para_uuid = $paragraph->uuid();
     $hex_array = explode("-", $para_uuid);
@@ -119,6 +119,7 @@ function yse_jumper_tokens($type, array $tokens, array $data, array $options, Bu
     $hex_jumpr = 'jump_' . $hex_group;
     $str_jumpr = null;
     if ($paragraph->hasField('field_jump_nav_heading')){
+      $has_jumpr = true;
       $str_jumpr = $paragraph->get('field_jump_nav_heading')->value;
     }
     if (empty($str_jumpr)){
@@ -148,7 +149,7 @@ function yse_jumper_tokens($type, array $tokens, array $data, array $options, Bu
           }
           break;
         case 'nodepath':
-          if (in_array($para_type, $parapaths)){
+          if (empty($needjumpr) || ($needjumpr && $has_jumpr)){
             $home_node = _yse_jumper_get_parentnode_path($paragraph);
             if (!empty($home_node)){
               $replacements[$original] = $home_node;
@@ -157,7 +158,7 @@ function yse_jumper_tokens($type, array $tokens, array $data, array $options, Bu
           break;
         case 'libitempath':
           //if ($para_type == 'from_library'){
-          if (in_array($para_type, $parapaths)){
+          if (empty($needjumpr) || ($needjumpr && $has_jumpr)){
             $home_node = _yse_jumper_get_library_path($paragraph);
             if (!empty($home_node)){
               $replacements[$original] = $home_node;
@@ -186,15 +187,22 @@ function yse_jumper_tokens($type, array $tokens, array $data, array $options, Bu
 
 function _yse_jumper_get_parentnode_path($entity){
   // Test for node type as well
-  if ($entity instanceof \Drupal\node\Entity\Node and in_array($entity->bundle(), ['yse_landing_general','yse_documentation_page'])) return $entity->toUrl()->toString();
+  
+  if ($entity instanceof \Drupal\node\Entity\Node and empty($entity->_referringItem)){
+    $nodebundles = \Drupal::config('yse_jumper.settings')->get('selected_nodebundles');
+    if (in_array($entity->bundle(), $nodebundles)){
+       return $entity->toUrl()->toString();
+    }
+  }
   // If our para is in a library or library-like node which is a ref stored in a paragraph, leapfrog and climb
   // config here would be to save on processing as opposed to checking every node that is not in the target set.
-  // used like in_array($entity->bundle(), ['yse_feature_store'])
-  if ($entity instanceof \Drupal\node\Entity\Node and !empty($entity->_referringItem) and !empty($entity->_referringItem->getEntity())) return _get_parentnode_path($entity->_referringItem->getEntity());
+  // We are making a big assumption that the referringItem could only be in this chain of para to surface node.
+  // We could make another config setting to help mitigate unwanted climbing.
+  if ($entity instanceof \Drupal\node\Entity\Node and !empty($entity->_referringItem) and !empty($entity->_referringItem->getEntity())) return _yse_jumper_get_parentnode_path($entity->_referringItem->getEntity());
   // I thought that maybe LibraryItems would have been smarter...
-  if ($entity instanceof Drupal\paragraphs_library\Entity\LibraryItem and !empty($entity->_referringItem) and !empty($entity->_referringItem->getEntity())) return _get_parentnode_path($entity->_referringItem->getEntity());
+  if ($entity instanceof Drupal\paragraphs_library\Entity\LibraryItem and !empty($entity->_referringItem) and !empty($entity->_referringItem->getEntity())) return _yse_jumper_get_parentnode_path($entity->_referringItem->getEntity());
   // If still a paragraph, climb
-  if ($entity instanceof \Drupal\paragraphs\Entity\Paragraph) return _get_parentnode_path($entity->getParentEntity());
+  if ($entity instanceof \Drupal\paragraphs\Entity\Paragraph) return _yse_jumper_get_parentnode_path($entity->getParentEntity());
   // Otherwise, this is an entity we didn't want.
   return null;
 }
@@ -204,9 +212,9 @@ function _yse_jumper_get_library_path($entity){
   if ($entity instanceof Drupal\paragraphs_library\Entity\LibraryItem) return $entity->toUrl()->toString();
   // If our para is in a stored panel and has a parent, climb
   //if ($entity instanceof \Drupal\node\Entity\Node and in_array($entity->bundle(), ['yse_feature_store'])){
-  if ($entity instanceof \Drupal\node\Entity\Node and !empty($entity->_referringItem) and !empty($entity->_referringItem->getEntity())) return _get_library_path($entity->_referringItem->getEntity());
+  if ($entity instanceof \Drupal\node\Entity\Node and !empty($entity->_referringItem) and !empty($entity->_referringItem->getEntity())) return _yse_jumper_get_library_path($entity->_referringItem->getEntity());
   // If still a paragraph, climb
-  if ($entity instanceof \Drupal\paragraphs\Entity\Paragraph) return _get_library_path($entity->getParentEntity());
+  if ($entity instanceof \Drupal\paragraphs\Entity\Paragraph) return _yse_jumper_get_library_path($entity->getParentEntity());
   // Otherwise, this is an entity we didn't want.
   return null;
 }
