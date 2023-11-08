@@ -30,6 +30,7 @@ function yse_jumper_preprocess_paragraph(&$variables) {
   /** @var \Drupal\paragraphs\Entity\Paragraph $paragraph */
   $paragraph = $variables['paragraph'];
   $para_uuid = $paragraph->uuid();
+  $para_step = null;
   $hex_array = explode("-", $para_uuid);
   $hex_group = reset($hex_array);
   $hex_jumpr = 'jump_' . $hex_group;
@@ -49,6 +50,16 @@ function yse_jumper_preprocess_paragraph(&$variables) {
   if(!empty($str_jumpr) && empty($variables['attributes']['data-jump-nav-heading'])) {
     $variables['attributes']['data-jump-nav-heading'] = Html::getClass($str_jumpr);
   }
+
+  if(empty($para_step) && empty($variables['attributes']['data-stepcount'])) {
+  //  \Drupal::logger('yse_jumper')->notice('%u - %c starts up', ['%u' => $para_uuid, '%c' => Html::getClass($str_jumpr)]);
+    $para_step = intval(_yse_jumper_count_stepups($paragraph));
+  }
+
+  if(!empty($para_step) && empty($variables['attributes']['data-stepcount'])) {
+    $variables['attributes']['data-stepcount'] = $para_step;
+  }
+  
 }
 
 
@@ -183,6 +194,26 @@ function yse_jumper_tokens($type, array $tokens, array $data, array $options, Bu
 
   return $replacements;
 
+}
+
+// I could run all the token checks in one routine and return an array
+function _yse_jumper_count_stepups($entity, $steps = 0){
+  //\Drupal::logger('yse_jumper')->notice('%u - %e type %t is %c steps up', ['%u' => $entity->uuid(), '%c' => $steps, '%t' =>  $entity->getEntityTypeId(), '%e' => $entity->label()]);
+
+  if ($entity instanceof \Drupal\node\Entity\Node and empty($entity->_referringItem)){
+    return $steps;
+  }
+  // If our para is in a library or library-like node which is a ref stored in a paragraph, leapfrog and climb
+  // config here would be to save on processing as opposed to checking every node that is not in the target set.
+  // We are making a big assumption that the referringItem could only be in this chain of para to surface node.
+  // We could make another config setting to help mitigate unwanted climbing.
+  if ($entity instanceof \Drupal\node\Entity\Node and !empty($entity->_referringItem) and !empty($entity->_referringItem->getEntity())) return _yse_jumper_count_stepups($entity->_referringItem->getEntity(), $steps);
+  // LibraryItems in the chain are a passthrough, I might change to a test for this in the para rule below...
+  if ($entity instanceof Drupal\paragraphs_library\Entity\LibraryItem and !empty($entity->_referringItem) and !empty($entity->_referringItem->getEntity())) return _yse_jumper_count_stepups($entity->_referringItem->getEntity(), --$steps);
+  // If still a paragraph, climb
+  if ($entity instanceof \Drupal\paragraphs\Entity\Paragraph) return _yse_jumper_count_stepups($entity->getParentEntity(), ++$steps);
+  // Otherwise, this is an entity we didn't want.
+  return null;
 }
 
 function _yse_jumper_get_parentnode_path($entity){
