@@ -51,15 +51,16 @@ function yse_jumper_preprocess_paragraph(&$variables) {
     $variables['attributes']['data-jump-nav-heading'] = Html::getClass($str_jumpr);
   }
 
-  if(empty($para_step) && empty($variables['attributes']['data-stepcount'])) {
+  // halting stepcounting
+  // if(empty($para_step) && empty($variables['attributes']['data-stepcount'])) {
   //  \Drupal::logger('yse_jumper')->notice('%u - %c starts up', ['%u' => $para_uuid, '%c' => Html::getClass($str_jumpr)]);
-    $para_step = intval(_yse_jumper_count_stepups($paragraph));
-  }
+  //  $para_step = intval(_yse_jumper_count_stepups($paragraph));
+  //}
 
-  if(!empty($para_step) && empty($variables['attributes']['data-stepcount'])) {
-    $variables['attributes']['data-stepcount'] = $para_step;
-  }
-  
+  //if(!empty($para_step) && empty($variables['attributes']['data-stepcount'])) {
+  //  $variables['attributes']['data-stepcount'] = $para_step;
+  //}
+
 }
 
 
@@ -73,7 +74,7 @@ function yse_jumper_token_info() {
     'description' => t('Tokens for jumpnav anchors from entity UUID.'),
     'needs-data' => 'user',
   );
-  
+
   $tokens['jumper']['hex'] = array(
     'name' => t('Hex Group'),
     'description' => t('First group of hex from UUID.'),
@@ -83,7 +84,7 @@ function yse_jumper_token_info() {
     'name' => t('Slug'),
     'description' => t('Slugified value from jumplink field.'),
   );
-  
+
   $tokens['jumper']['anchor'] = array(
     'name' => t('Anchor'),
     'description' => t('Anchor for placement using DOM element id'),
@@ -98,13 +99,13 @@ function yse_jumper_token_info() {
     'name' => t('Parent Library Item path'),
     'description' => t('Recursion to canonical paragraphs library item path'),
   );
-  
+
   $tokens['paragraph']['jumper'] = array(
     'name' => t('Paragraph Jumper'),
     'description' => t('Jump Anchor for Paragraph.'),
     'type' => 'jumper',
   );
-    
+
   return array(
     'types' => $types,
     'tokens' => $tokens,
@@ -119,7 +120,7 @@ function yse_jumper_tokens($type, array $tokens, array $data, array $options, Bu
   $replacements = [];
 
   if ($type == 'jumper' && !empty($data['paragraph'])) {
-    
+
     $paragraph = $data['paragraph'];
     $paracfobj = \Drupal::config('yse_jumper.settings');
     $needjumpr = $paracfobj->get('jump_field_paths_only');
@@ -183,9 +184,9 @@ function yse_jumper_tokens($type, array $tokens, array $data, array $options, Bu
   if ($type == 'paragraph' && !empty($data['paragraph'])) {
     if ($jumpr_tokens = $token_service->findWithPrefix($tokens, 'jumper')) {
       $replacements += $token_service->generate(
-        'jumper', 
-        $jumpr_tokens, 
-        ['paragraph' => $data['paragraph']], 
+        'jumper',
+        $jumpr_tokens,
+        ['paragraph' => $data['paragraph']],
         $options,
         $bubbleable_metadata
       );
@@ -218,7 +219,7 @@ function _yse_jumper_count_stepups($entity, $steps = 0){
 
 function _yse_jumper_get_parentnode_path($entity){
   // Test for node type as well
-  
+
   if ($entity instanceof \Drupal\node\Entity\Node and empty($entity->_referringItem)){
     $nodebundles = \Drupal::config('yse_jumper.settings')->get('selected_nodebundles');
     if (in_array($entity->bundle(), $nodebundles)){
