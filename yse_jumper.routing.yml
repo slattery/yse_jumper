@@ -1,0 +1,7 @@
+yse_jumper.form:
+  path: '/admin/config/development/yse-jumper'
+  defaults:
+    _form: '\Drupal\yse_jumper\Form\YseJumperForm'
+    _title: 'YSE Jumper Settings'
+  requirements:
+    _permission: 'administer site configuration'

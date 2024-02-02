@@ -1,8 +1,37 @@
 jump_field_paths_only: true
 parabundle_toggle: true
+excluded_parabundles:
+  - node_reference_redecorator
+  - partition
+  - yse_actionpanel
+  - yse_bundle_copyright
+  - yse_bundle_field_sandbox
+  - yse_bundle_mini_signup
+  - yse_callout_button_column
+  - yse_checkerboard_entry
+  - yse_displayopts_hero_box
+  - yse_displayopts_hero_overlay
+  - yse_displayopts_section_theme
+  - yse_hero
+  - yse_infobrief_row
+  - yse_item_event_manual
+  - yse_item_wysiwyg
+  - yse_lc_feature_bundle
+  - yse_navsock
+  - yse_news_feature_row
+  - yse_person_feature_row
+  - yse_person_list_partial
+  - yse_research_topic_bundle
+  - yse_resourcepull_spec_courselist
+  - yse_sectionsettings_partial
+  - yse_stored_feature_insert
+  - yse_tickle_bundle
+  - yse_ticl_doc_bundle
+  - yse_timeline_entry
 selected_parabundles:
   - from_library
 selected_nodebundles:
-  - yse_landing_general
   - yse_documentation_page
   - yse_feature_store
+  - yse_landing_general
+  - yse_sbunit_page

@@ -3,5 +3,6 @@ type: module
 description: Support jump nav for paragraphs.
 package: YSE Contrib
 core_version_requirement: ^8.7.7 || ^9
+configure: yse_jumper.form
 dependencies:
   - drupal:help

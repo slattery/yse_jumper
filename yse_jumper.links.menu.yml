@@ -1,0 +1,6 @@
+yse_jumper.form:
+  title: 'YSE Jumper Settings'
+  parent: system.admin_config_development
+  description: 'Choose node and paragraphs types for jumper treatment'
+  route_name: yse_jumper.form
+  weight: 20

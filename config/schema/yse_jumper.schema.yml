@@ -8,6 +8,12 @@ yse_jumper.settings:
     parabundle_toggle:
       type: boolean
       label: 'Whether to exclude (TRUE) or include (FALSE) the selected bundles.'
+    excluded_parabundles:
+      type: sequence
+      label: 'Paragraph types to exclude from parent node path lookup'
+      sequence:
+        type: string
+        label: 'Paragraph bundle'
     selected_parabundles:
       type: sequence
       label: 'Paragraph types for paragraphs parent node path lookup'
