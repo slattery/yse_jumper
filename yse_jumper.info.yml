@@ -1,8 +1,10 @@
-name: YSE Jumper
-type: module
-description: Support jump nav for paragraphs.
-package: YSE Contrib
-core_version_requirement: ^8.7.7 || ^9 || ^10
+---
 configure: yse_jumper.form
+core_version_requirement: '^8.7.7 || ^9 || ^10'
 dependencies:
   - drupal:help
+description: 'Support jump nav for paragraphs.'
+name: 'YSE Jumper'
+package: 'YSE Contrib'
+type: module
+version: v1.4.5
