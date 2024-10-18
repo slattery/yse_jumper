@@ -30,77 +30,79 @@ function yse_jumper_help($route_name, RouteMatchInterface $route_match) {
 function yse_jumper_preprocess_paragraph(&$variables) {
   /** @var \Drupal\paragraphs\Entity\Paragraph $paragraph */
   $paragraph = $variables['paragraph'];
-  if ($paragraph->getType() == 'from_library'){
+  if ($paragraph->getType() == 'from_library') {
     return;
   }
   $para_uuid = $paragraph->uuid();
-  $para_step = null;
+  $para_step = NULL;
   $hex_array = explode("-", $para_uuid);
   $hex_group = reset($hex_array);
   $hex_jumpr = 'jump_' . $hex_group;
-  $str_jumpr = null;
-  if ($paragraph->hasField('field_jump_nav_heading')){
+  $str_jumpr = NULL;
+  if ($paragraph->hasField('field_jump_nav_heading')) {
     $str_jumpr = $paragraph->get('field_jump_nav_heading')->value;
   }
-  if (empty($str_jumpr)){
+  if (empty($str_jumpr)) {
     $domid = $hex_jumpr;
-  } else {
+  }
+  else {
     $domid = Html::getId($str_jumpr);
   }
-  if(empty($variables['attributes']['id'])) {
-     // Add variables here
+  if (empty($variables['attributes']['id'])) {
+    // Add variables here
     $variables['dom_id'] = $domid;
     $variables['attributes']['id'] = $domid;
   }
-  if(!empty($str_jumpr) && empty($variables['attributes']['data-jump-nav-heading'])) {
+  if (!empty($str_jumpr) && empty($variables['attributes']['data-jump-nav-heading'])) {
     $variables['jump-nav-heading'] = $str_jumpr;
     $variables['attributes']['data-jump-nav-heading'] = $str_jumpr;
   }
 
   list($ceiling_node, $steps) = _find_ceiling($paragraph);
 
-  if (!empty($ceiling_node) &&  $ceiling_node->toUrl()->toString()){
+  if (!empty($ceiling_node) && $ceiling_node->toUrl()->toString()) {
     $variables['local_path'] = $ceiling_node->toUrl()->toString();
     $variables['share_path'] = $variables['local_path'] . '#' . $domid;
   }
-  if (!empty($steps) and $steps > 0){
+  if (!empty($steps) and $steps > 0) {
     $variables['depth'] = $steps;
   }
 }
 
 
-function _find_ceiling($object, $steps = 1){
-  if ($object->get('parent_type')->value == 'paragraph'){
+function _find_ceiling($object, $steps = 1) {
+  if ($object->get('parent_type')->value == 'paragraph') {
     return _find_ceiling($object->_referringItem->getRoot()->getEntity(), ++$steps);
   }
-  elseif ($object->get('parent_type')->value == 'paragraphs_library_item'){
+  elseif ($object->get('parent_type')->value == 'paragraphs_library_item') {
     return _find_ceiling($object->_referringItem->getRoot()->getEntity()->_referringItem->getRoot()->getEntity(), $steps);
   }
-  elseif ($object->get('parent_type')->value == 'node'){
+  elseif ($object->get('parent_type')->value == 'node') {
     $parent_node = $object->_referringItem->getRoot()->getEntity();
-    if (empty($parent_node) || $parent_node instanceof \Drupal\entity_embed\Entity\EntityEmbedFakeEntity){
+    if (empty($parent_node) || $parent_node instanceof \Drupal\entity_embed\Entity\EntityEmbedFakeEntity) {
       //we can't support embedded paragraphs in WYSIWYGs
-      return [];
+      return [NULL, NULL];
     }
-    elseif (!empty($parent_node->_referringItem)){
+    elseif (!empty($parent_node->_referringItem)) {
       return _find_ceiling($parent_node->_referringItem->getRoot()->getEntity(), ++$steps);
     }
     else {
       $parent_type = $parent_node->getType();
-      $promoter_node = null;
+      $promoter_node = NULL;
       //A promoter is the node that promoted a paragraph to the library.  When one exists we
       //use that node as the basis for links, in case the paragraph within is being embedded
       if (\Drupal::service('module_handler')->moduleExists('yse_paragraphs_promoter')) {
-        if ($parent_type == 'yse_reusable_item'){
+        if ($parent_type == 'yse_reusable_item') {
           $promoter_node = $parent_node->get('field_reusable_paragraph')->entity
-              ->get('field_reusable_paragraph')->entity->get('promoter')->entity;
+            ->get('field_reusable_paragraph')->entity->get('promoter')->entity;
         }
       }
-      $ceiling_node = ( isset($promoter_node) && $promoter_node->id() ) ? $promoter_node : $parent_node;
+      $ceiling_node = (isset($promoter_node) && $promoter_node->id()) ? $promoter_node : $parent_node;
       return [$ceiling_node, $steps];
     }
-  } else {
+  }
+  else {
     //thus far not accommodated media, blocks, views, etc.
-    return [];
+    return [NULL, NULL];
   }
 }
