@@ -71,6 +71,10 @@ function yse_jumper_preprocess_paragraph(&$variables) {
 
 
 function _find_ceiling($object, $steps = 1) {
+  if ($object instanceof \Drupal\entity_embed\Entity\EntityEmbedFakeEntity) {
+    //we can't support or add jumper ids to embedded paragraphs in WYSIWYGs
+    return [NULL, NULL];
+  }
   if ($object->get('parent_type')->value == 'paragraph') {
     return _find_ceiling($object->_referringItem->getRoot()->getEntity(), ++$steps);
   }
