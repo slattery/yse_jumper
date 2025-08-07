@@ -30,7 +30,7 @@ function yse_jumper_help($route_name, RouteMatchInterface $route_match) {
 function yse_jumper_preprocess_paragraph(&$variables) {
   /** @var \Drupal\paragraphs\Entity\Paragraph $paragraph */
   $paragraph = $variables['paragraph'];
-  if ($paragraph->getType() == 'from_library') {
+  if ($paragraph->getType() == 'from_library' || $paragraph->getType() == 'layout_section') {
     return;
   }
   $para_uuid = $paragraph->uuid();
@@ -78,7 +78,7 @@ function _find_ceiling($object, $steps = 1) {
     return _find_ceiling($object->_referringItem->getRoot()->getEntity()->_referringItem->getRoot()->getEntity(), $steps);
   }
   elseif ($object->get('parent_type')->value == 'node') {
-    $parent_node = $object->_referringItem->getRoot()->getEntity();
+    $parent_node = !empty($object->_referringItem) ? $object->_referringItem->getRoot()->getEntity() : NULL;
     if (empty($parent_node) || $parent_node instanceof \Drupal\entity_embed\Entity\EntityEmbedFakeEntity) {
       //we can't support embedded paragraphs in WYSIWYGs
       return [NULL, NULL];
