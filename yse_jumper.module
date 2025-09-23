@@ -5,6 +5,7 @@ use Drupal\Core\Field\Plugin\Field\FieldType\EntityReferenceItem;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Component\Utility\Html;
 use Drupal\node\Entity\Node;
+use Drupal\node\NodeInterface;
 use Drupal\paragraphs\ParagraphInterface;
 use Drupal\paragraphs\Entity\Paragraph;
 use Drupal\paragraphs_library\LibraryItemInterface;
@@ -66,11 +67,10 @@ function yse_jumper_preprocess_paragraph(&$variables) {
 
   //climb up chain to summit node
   list($ceiling_node, $steps) = _find_summit_node($paragraph);
-
   if (!empty($ceiling_node) && $ceiling_node->toUrl()->toString()) {
     $variables['local_path'] = $ceiling_node->toUrl()->toString();
     $variables['share_path'] = $variables['local_path'] . '#' . $domid;
-    $variables['share_title'] = $ceiling_node->getTitle();
+    $variables['share_title'] = $ceiling_node->label();
     \Drupal::service('renderer')->addCacheableDependency($variables, $ceiling_node);
   }
 
@@ -114,40 +114,31 @@ function _climb($object, $steps) {
   if ($object instanceof \Drupal\entity_embed\Entity\EntityEmbedFakeEntity) {
     return [NULL, NULL];
   }
-
   //EntityReferenceItem does not have hasField so mere failure does not help
   if ($object instanceof EntityReferenceItem) {
-    _climb($object->getEntity(), ++$steps);
+    return _climb($object->getEntity(), ++$steps);
   }
   elseif ($object->hasField('parent_type') && $object->get('parent_type')->value) {
     if ($object->get('parent_type')->value == 'paragraphs_library_item') {
-      _climb($object->_referringItem, ++$steps);
+      return _climb($object->_referringItem, ++$steps);
     }
     elseif ($object instanceof Paragraph || $object instanceof ParagraphInterface) {
       if ($object->getParentEntity()) {
-        _climb($object->getParentEntity(), ++$steps);
+        return _climb($object->getParentEntity(), ++$steps);
       }
     }
   }
   elseif ($object->_referringItem) {
-    _climb($object->_referringItem, ++$steps);
+    //not sure if this is good mop-up or a dead end...
+    return _climb($object->_referringItem, ++$steps);
   }
-  else {
-    if ($object instanceof Node) {
-      //maybe todo try to let this climb if there is _referringItem
-      if (\Drupal::service('module_handler')->moduleExists('yse_paragraphs_promoter')
-        && ($object->getType() == 'yse_reusable_item')) {
-        //promoter expected to handle this, so we can exit
-        return [NULL, NULL];
-      }
-      else {
-        return [$object, $steps];
-      }
+  elseif ($object instanceof Node || $object instanceof NodeInterface) {
+    if (\Drupal::service('module_handler')->moduleExists('yse_paragraphs_promoter')
+      && ($object->getType() == 'yse_reusable_item')) {
+      //promoter expected to handle this, so we can exit
+      return [NULL, NULL];
     }
-    else {
-      return [$object, $steps];
-    }
+    return [$object, $steps];
   }
   return [NULL, NULL];
-
 }
