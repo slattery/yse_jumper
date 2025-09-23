@@ -70,12 +70,16 @@ function yse_jumper_preprocess_paragraph(&$variables) {
   if (!empty($ceiling_node) && $ceiling_node->toUrl()->toString()) {
     $variables['local_path'] = $ceiling_node->toUrl()->toString();
     $variables['share_path'] = $variables['local_path'] . '#' . $domid;
+    $variables['share_title'] = $ceiling_node->getTitle();
     \Drupal::service('renderer')->addCacheableDependency($variables, $ceiling_node);
   }
 
   if (empty($ceiling_node) && \Drupal::service('module_handler')->moduleExists('yse_paragraphs_promoter')) {
-    if ($variables['promoter_path'] && !empty($variables['promoter_path'])) {
+    if (isset($variables['promoter_path']) && !empty($variables['promoter_path'])) {
       $variables['share_path'] = $variables['promoter_path'] . '#' . $domid;
+    }
+    if (isset($variables['promoter_title']) && !empty($variables['promoter_title'])) {
+      $variables['share_title'] = $variables['promoter_title'];
     }
   }
 
