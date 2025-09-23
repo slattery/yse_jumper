@@ -74,7 +74,9 @@ function yse_jumper_preprocess_paragraph(&$variables) {
   }
 
   if (empty($ceiling_node) && \Drupal::service('module_handler')->moduleExists('yse_paragraphs_promoter')) {
-    $variables['share_path'] = $variables['promoter_path'] . '#' . $domid;
+    if ($variables['promoter_path'] && !empty($variables['promoter_path'])) {
+      $variables['share_path'] = $variables['promoter_path'] . '#' . $domid;
+    }
   }
 
   if (!empty($steps) and $steps > 0) {
